@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Robot Dock · Live Viewer</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#101821;color:#e8eef5;font:15px/1.6 system-ui}main{max-width:1400px;margin:auto;padding:28px}header{display:flex;justify-content:space-between;align-items:center}h1{font-size:26px;margin:0}small,.muted{color:#a9b9ca}.views{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin:24px 0}.card{background:#1b2938;border:1px solid #314354;border-radius:12px;padding:18px}.card img{width:100%;aspect-ratio:4/3;object-fit:contain;background:#090e14;border-radius:7px}.card img#wrist{aspect-ratio:16/9}h2{font-size:16px;margin:0 0 12px}.badge{padding:5px 12px;border-radius:20px;background:#233f40;color:#a6eed3}label{display:flex;gap:12px;align-items:center;margin:10px 0}input{flex:1}output{min-width:54px;text-align:right}button{background:#304e68;color:white;border:0;padding:8px 15px;border-radius:6px;cursor:pointer}pre{white-space:pre-wrap;margin:0;font-size:13px}.notice{margin-top:15px;color:#a9b9ca}@media(max-width:800px){.views{grid-template-columns:1fr}main{padding:16px}}
+</style>
+<main><header><div><h1>Robot Dock</h1><small>无头服务器实时预览 · 仿真与模型在服务器运行</small></div><span class="badge" id="phase">连接中</span></header>
+<div class="views"><section class="card"><h2>外部观察视角</h2><img id="overview" alt="等待仿真渲染">
+<label>旋转<input id="azimuth" type="range" min="-360" max="360" value="135"><output>135°</output></label>
+<label>俯仰<input id="elevation" type="range" min="-89" max="-5" value="-30"><output>-30°</output></label>
+<label>距离<input id="distance" type="range" min="0.3" max="4" step="0.05" value="1.55"><output>1.55 m</output></label>
+<button id="reset">重置视角</button><p class="muted">仅改变观察相机；命令在下一次仿真渲染时应用。</p></section>
+<section class="card"><h2>模型腕部画面</h2><img id="wrist" alt="等待腕部相机"><p class="muted">腕部画面在采集观测时更新；等待推理期间保持上一帧。</p><h2>运行状态</h2><pre id="status">等待服务器…</pre></section></div>
+<p class="notice" id="notice">关闭网页不会停止任务。任务结束后保留最后画面；终端 Ctrl+C 关闭查看服务。</p></main>
+<script>
+let busy=false, timer, finished=false;
+async function poll(){if(busy)return;busy=true;try{const response=await fetch('/status');if(!response.ok)throw Error('status');const s=await response.json();document.querySelector('#phase').textContent=s.phase;document.querySelector('#status').textContent=JSON.stringify(s,null,2);if(s.camera){for(const [name,value]of Object.entries(s.camera)){const el=document.querySelector('#'+name);if(el&&document.activeElement!==el){el.value=value;el.nextElementSibling.textContent=Number(value).toFixed(name==='distance'?2:0)+(name==='distance'?' m':'°');}}}finished=['finished','closed'].includes(s.phase);document.querySelectorAll('input,button').forEach(el=>el.disabled=finished);if(s.frames){for(const name of ['overview','wrist']){const el=document.querySelector('#'+name);if(el.dataset.frame!=s.frames){el.src='/frame/'+name+'.jpg?v='+s.frames;el.dataset.frame=s.frames;}}}}catch(e){document.querySelector('#phase').textContent='连接断开';}finally{busy=false;}}
+async function camera(){const body={};for(const name of ['azimuth','elevation','distance'])body[name]=Number(document.querySelector('#'+name).value);try{const r=await fetch('/camera',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});if(!r.ok)document.querySelector('#notice').textContent='视角命令未应用：'+await r.text();}catch(e){document.querySelector('#notice').textContent='无法连接查看服务';}}
+for(const name of ['azimuth','elevation','distance'])document.querySelector('#'+name).addEventListener('input',e=>{e.target.nextElementSibling.textContent=e.target.value+(name==='distance'?' m':'°');clearTimeout(timer);timer=setTimeout(camera,120);});
+document.querySelector('#reset').onclick=()=>{for(const [name,value]of Object.entries({azimuth:135,elevation:-30,distance:1.55})){const el=document.querySelector('#'+name);el.value=value;el.nextElementSibling.textContent=value+(name==='distance'?' m':'°');}camera();};poll();setInterval(poll,250);
+</script></html>

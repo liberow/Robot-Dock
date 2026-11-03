@@ -1,0 +1,20 @@
+# Use the project's locked tool versions, not a second set of hook dependencies.
+repos:
+  - repo: local
+    hooks:
+      - id: ruff-check
+        name: Ruff lint
+        entry: uv run --no-sync ruff check
+        language: system
+        types: [python]
+      - id: ruff-format
+        name: Ruff formatting check
+        entry: uv run --no-sync ruff format --check
+        language: system
+        types: [python]
+      - id: repository-check
+        name: Repository configuration
+        entry: uv run --no-sync python scripts/dev/check_repository.py
+        language: system
+        pass_filenames: false
+        always_run: true

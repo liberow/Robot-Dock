@@ -1,0 +1,14 @@
+{
+  "policy": "openai_cartesian",
+  "robot": {
+    "type": "mujoco_ur5e",
+    "assets_dir": "../assets/menagerie",
+    "inter_chunk_pause_s": 0.5,
+    "support_plane_z_m": 0.0
+  },
+  "task": "stack_red_on_green",
+  "instruction": "Pick up the red cube and place it on top of the green cube. Open the gripper to release it, then move the gripper away.",
+  "max_chunks": 100,
+  "max_wall_time_s": 600,
+  "output_root": "../runs"
+}

@@ -1,0 +1,98 @@
+[project]
+name = "robot-dock"
+version = "0.1.0"
+description = "An extensible harness for embodied policies, simulation, and real robots"
+readme = "README.md"
+requires-python = ">=3.12"
+license = "MIT"
+dependencies = [
+    "h5py>=3.12,<4",
+    "numpy>=1.26,<3",
+    "pillow>=10,<13",
+    "python-dotenv>=1.2,<2",
+]
+
+[project.optional-dependencies]
+mujoco = ["mujoco>=3.3,<4", "scipy>=1.13,<2", "imageio>=2.34,<3", "imageio-ffmpeg>=0.5,<1"]
+
+[dependency-groups]
+assets = [
+    "meshopt==0.1.1",
+    "usd-core>=25,<27",
+]
+dev = ["pytest>=8,<10", "pytest-cov>=6,<8", "ruff>=0.14,<1", "mypy>=1.14,<2", "poethepoet>=0.45,<1", "pre-commit>=4,<5"]
+
+[project.scripts]
+robot-dock = "robot_dock.cli.main:main"
+
+[build-system]
+requires = ["hatchling>=1.26,<2"]
+build-backend = "hatchling.build"
+
+[tool.ruff]
+target-version = "py312"
+line-length = 100
+extend-exclude = ["assets/menagerie", ".tmp", "runs"]
+
+[tool.ruff.lint]
+select = ["E4", "E7", "E9", "F", "I"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra --basetemp=artifacts/test/tmp"
+markers = ["integration: opt-in external integration checks"]
+
+[tool.mypy]
+python_version = "3.12"
+files = ["src/robot_dock"]
+check_untyped_defs = true
+disallow_untyped_defs = true
+show_error_codes = true
+warn_unused_configs = true
+warn_unused_ignores = true
+no_implicit_optional = true
+
+[[tool.mypy.overrides]]
+module = ["mujoco", "mujoco.*", "scipy", "scipy.*", "imageio", "imageio.*", "h5py"]
+ignore_missing_imports = true
+
+[tool.poe.tasks.style]
+help = "Apply formatting and safe lint fixes"
+sequence = [{cmd = "ruff check . --fix"}, {cmd = "ruff format ."}]
+
+[tool.poe.tasks.check-format]
+help = "Check formatting without editing"
+sequence = [{cmd = "ruff check ."}, {cmd = "ruff format --check ."}]
+
+[tool.poe.tasks.lint]
+help = "Check source types and repository configuration"
+sequence = [{cmd = "python scripts/dev/check_repository.py"}, {cmd = "mypy"}]
+
+[tool.poe.tasks.test]
+help = "Run offline tests with JUnit output"
+cmd = "python -m pytest --junitxml=artifacts/test/report.xml"
+
+[tool.poe.tasks.coverage]
+help = "Run tests with branch coverage and JUnit output"
+cmd = "python -m pytest --cov=robot_dock --cov-report=term-missing:skip-covered --cov-report=xml --junitxml=artifacts/test/report.xml"
+
+[tool.poe.tasks.ci]
+help = "Run the same non-mutating checks as CI"
+sequence = [{ref = "check-format"}, {ref = "lint"}, {ref = "coverage"}]
+
+
+
+[tool.coverage.run]
+branch = true
+source = ["robot_dock"]
+data_file = "artifacts/test/.coverage"
+
+[tool.coverage.report]
+show_missing = true
+skip_covered = true
+
+[tool.coverage.xml]
+output = "artifacts/test/coverage.xml"
+
+[tool.coverage.html]
+directory = "artifacts/test/htmlcov"

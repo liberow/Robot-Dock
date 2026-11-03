@@ -1,0 +1,14 @@
+{
+  "policy": "openai_cartesian",
+  "robot": {
+    "type": "mujoco_ur5e",
+    "assets_dir": "../assets/menagerie",
+    "inter_chunk_pause_s": 0.5,
+    "support_plane_z_m": 0.0
+  },
+  "task": "lift_red",
+  "instruction": "Pick up the red cube, lift it well clear of the table, and hold it still in the air. Keep holding it; do not put it down.",
+  "max_chunks": 40,
+  "max_wall_time_s": 180,
+  "output_root": "../runs"
+}
